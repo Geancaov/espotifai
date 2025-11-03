@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  api:
+    build: ./backend
+    container_name: api
+    command: uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+      - ./backend/keys:/app/keys:ro
+    env_file:
+      - ./backend/.env
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/service-account.json
+    ports:
+      - "8000:8000"
