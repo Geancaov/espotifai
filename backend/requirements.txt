@@ -6,3 +6,6 @@ passlib~=1.7
 pyjwt~=2.9
 google-cloud-firestore~=2.16
 google-auth~=2.35
+redis~=5.0
+minio~=7.2
+prometheus-client~=0.20
