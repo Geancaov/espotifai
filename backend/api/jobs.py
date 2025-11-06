@@ -8,12 +8,13 @@ from typing import Optional, Dict, Any, BinaryIO
 from minio import Minio
 from minio.error import S3Error
 from google.cloud import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 # Importar la DB de Firestore
 from .firebase_db import db
 
 # --- Configuración de Redis (SIN CAMBIOS) ---
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_DB = int(os.getenv("REDIS_DB", "0"))
 REDIS_QUEUE = os.getenv("REDIS_QUEUE", "convert")
@@ -29,15 +30,15 @@ def get_redis_client() -> redis.Redis:
         _redis_client.ping()
     return _redis_client
 
-# --- Configuración de MinIO (SIN CAMBIOS) ---
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
+# --- Configuración de MinIO ---
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "minio:9000")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
 MINIO_SECURE = os.getenv("MINIO_SECURE", "false").lower() == "true"
 
 _minio_client = None
 
-def get_minio_client() -> MinIO:
+def get_minio_client() -> Minio:
     global _minio_client
     if _minio_client is None:
         _minio_client = Minio(
@@ -72,21 +73,20 @@ def upload_file_to_minio(
 
 def get_presigned_url_for_download(bucket: str, object_name: str, expires_in_hours: int = 1) -> str:
     """
-    (IMPLEMENTADO) Genera una URL firmada de corta duración para descargar un objeto.
+    Genera una URL firmada temporal para descargar un objeto en MinIO.
     """
     client = get_minio_client()
     try:
-        # Generar URL válida por 1 hora (3600 segundos)
-        url = client.presign(
-            "GET",
-            bucket,
-            object_name,
+        url = client.presigned_get_object(
+            bucket_name=bucket,
+            object_name=object_name,
             expires=datetime.timedelta(hours=expires_in_hours),
         )
         return url
     except S3Error as e:
         print(f"Error al generar URL presignada: {e}")
         raise
+
 
 # --- Lógica de Media (Firestore) ---
 
@@ -127,32 +127,31 @@ def get_media_entry(media_id: str) -> Optional[Dict[str, Any]]:
     return data
 
 def get_media_by_job_id(job_id: str) -> Optional[Dict[str, Any]]:
-    """
-    (NUEVA FUNCIÓN) Busca en Firestore un documento 'media' usando el 'job_ids' array.
-    """
-    # Esta consulta busca en la colección 'media' un documento donde
-    # el array 'job_ids' contenga el job_id que buscamos.
-    # ¡Firestore requiere un índice para consultas 'array_contains'!
-    docs = db().collection("media").where("job_ids", "array_contains", job_id).limit(1).stream()
-    
-    for d in docs:
-        data = d.to_dict()
-        data["id"] = d.id
-        return data
-    return None
+    try:
+        docs = (db()
+            .collection("media")
+            .where(filter=FieldFilter("job_ids", "array_contains", job_id))
+            .limit(1)
+            .stream())
+        for d in docs:
+            data = d.to_dict() or {}
+            data["id"] = d.id
+            return data
+        return None
+    except Exception as e:
+        # Loguea y devuelve None para que el endpoint responda 404 y no 500
+        print(f"[get_media_by_job_id] error: {e}")
+        return None
 
 
 def update_job_status(media_id: str, job_id: str, status: str, details: Dict[str, Any] = None):
-    """
-    (MODIFICADO) Actualiza el estado de un job dentro del documento 'media'.
-    Esta función la usará el worker (Integrante B) cuando termine.
-    """
+
     media_ref = db().collection("media").document(media_id)
     
     update_data = {
         f"jobs.{job_id}.status": status,
         f"jobs.{job_id}.details": details or {},
-        f"jobs.{job_id}.updated_at": datetime.datetime.utcnow()
+        f"jobs.{job_id}.updated_at": firestore.SERVER_TIMESTAMP,
     }
     
     # Marcar el estado general del 'media'
@@ -170,51 +169,43 @@ def update_job_status(media_id: str, job_id: str, status: str, details: Dict[str
 # --- Lógica de Jobs (Redis) ---
 
 def enqueue_conversion_job(
+    *,
     media_id: str,
+    job_id: str,
+    target: str,                 # "mp3" | "mp4" | "hls"
     source_bucket: str,
     source_object: str,
-    target: str,
     output_bucket: str,
-) -> str:
+    output_prefix: str
+) -> None:
     """
-    (MODIFICADO) Encola el trabajo y añade el job_id al array 'job_ids'.
+    Publica en la cola (Redis) el JSON que el worker necesita.
+    NO generar job_id aquí: viene del API para que coincida en todo lado.
     """
-    job_id = str(uuid.uuid4())
-    output_prefix = f"media/{media_id}/conversions/{job_id}/"
-
-    job_payload = {
-        "job_id": job_id,
+    payload = {
         "media_id": media_id,
+        "job_id": job_id,
+        "target": target,
         "source_bucket": source_bucket,
         "source_object": source_object,
-        "target": target,
         "output_bucket": output_bucket,
         "output_prefix": output_prefix,
     }
 
-    try:
-        r = get_redis_client()
-        r.rpush(REDIS_QUEUE, json.dumps(job_payload))
-        
-        # Guardar el estado inicial en Firestore (MODIFICADO)
-        media_ref = db().collection("media").document(media_id)
-        media_ref.update({
-            "status": "processing",
-            # (NUEVO) Añadir al array de búsqueda (atomicamente)
-            "job_ids": firestore.ArrayUnion([job_id]), 
-            # (Existente) Añadir al mapa de detalles
-            f"jobs.{job_id}": {
-                "target": target,
-                "status": "enqueued",
-                "output_prefix": output_prefix,
-                "enqueued_at": datetime.datetime.utcnow()
-            }
-        })
-        
-        return job_id
-    except redis.ConnectionError as e:
-        print(f"Error conectando o encolando en Redis: {e}")
-        raise e
-    except Exception as e:
-        print(f"Error actualizando Firestore: {e}")
-        raise e
+    # 1) Encolar en Redis
+    r = get_redis_client()
+    r.rpush(REDIS_QUEUE, json.dumps(payload))
+
+    # 2) Guardar/mergear estado inicial del job en Firestore
+    media_ref = db().collection("media").document(media_id)
+    media_ref.set({
+        "status": "processing",  
+        "job_ids": firestore.ArrayUnion([job_id]),
+        f"jobs.{job_id}": {
+            "target": target,
+            "status": "enqueued",
+            "output_prefix": output_prefix,
+            "enqueued_at": firestore.SERVER_TIMESTAMP,   
+            "updated_at": firestore.SERVER_TIMESTAMP,
+        }
+    }, merge=True)

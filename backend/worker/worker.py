@@ -14,7 +14,13 @@ from ffmpeg_tasks import (
 )
 from minio_client import download_object, upload_object
 
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+from api.firebase_db import (
+    mark_media_job_processing,
+    mark_media_job_done,
+    mark_media_job_failed,
+)
+
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_DB = int(os.getenv("REDIS_DB", "0"))
 REDIS_QUEUE = os.getenv("REDIS_QUEUE", "convert")
@@ -58,24 +64,23 @@ def get_local_input(job_id: str, job: dict) -> str:
 
 def upload_result_if_needed(job: dict, job_id: str, local_path: str, is_hls: bool = False) -> None:
     output_bucket = job.get("output_bucket")
-    output_prefix = job.get("output_prefix")
+    output_prefix = job.get("output_prefix")  # p.ej. "converted/<media_id>/<job_id>"
 
     if not output_bucket or not output_prefix:
         return
 
-    if not output_prefix.endswith("/"):
-        output_prefix = output_prefix + "/"
-
     if not is_hls:
-        object_name = output_prefix + Path(local_path).name
+        ext = Path(local_path).suffix
+        object_name = f"{output_prefix}{ext}"
         upload_object(output_bucket, object_name, local_path)
         return
 
-    hls_dir = Path(local_path).parent
+    hls_dir = Path(local_path).parent  
     for item in hls_dir.iterdir():
         if item.is_file():
-            object_name = output_prefix + item.name
+            object_name = f"{output_prefix}/{item.name}"
             upload_object(output_bucket, object_name, str(item))
+
 
 
 def process_job(job: dict) -> str:
@@ -139,13 +144,31 @@ def main() -> None:
                 continue
 
             jobs_in_progress.labels(worker_id=WORKER_ID).inc()
+                
             try:
+                job_id = job.get("job_id")
+                media_id = job.get("media_id")
+
+                # ---- estado: processing ----
+                if media_id and job_id:
+                    mark_media_job_processing(media_id, job_id)
+
                 output_path = process_job(job)
                 logger.info(f"[{WORKER_ID}] job finished, output at: {output_path}")
+
+                # ---- estado: done ----
+                if media_id and job_id:
+                    mark_media_job_done(media_id, job_id, output_prefix=job.get("output_prefix"))
+
                 jobs_done_total.labels(worker_id=WORKER_ID).inc()
             except Exception as e:
                 logger.exception(f"[{WORKER_ID}] job failed: {e}")
                 jobs_failed_total.labels(worker_id=WORKER_ID).inc()
+                try:
+                    if media_id and job_id:
+                        mark_media_job_failed(media_id, job_id, details=str(e))
+                except Exception:
+                    pass
             finally:
                 jobs_in_progress.labels(worker_id=WORKER_ID).dec()
 

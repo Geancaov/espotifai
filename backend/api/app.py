@@ -2,12 +2,18 @@ from fastapi import FastAPI, Form, HTTPException, Depends, Body, UploadFile, Fil
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import Response
 import prometheus_client
+import uuid 
+from pathlib import Path 
+from minio.error import S3Error
 from typing import Literal
 from .auth import create_user as auth_create_user, authenticate, current_user
 from .auth_google import router as google_router
 from .metrics import (PrometheusMiddleware, api_queue_size, api_jobs_enqueued_total, api_media_uploads_total)
 from . import jobs
 from .jobs import REDIS_QUEUE
+from typing import Optional
+from google.cloud import firestore
+from .firebase_db import get_db
 
 app = FastAPI(title="Auth con Firestore + JWT")
 
@@ -119,75 +125,89 @@ def convert_media(
     user = Depends(current_user)
 ):
     """
-    (MODIFICADO) Encola un trabajo de conversión.
+    Encola un trabajo de conversión y deja todo lo necesario en Firestore.
     """
-    # 1. Validar que el 'media_id' existe (usando la función real)
+    # 1) Validar media y propiedad
     media_entry = jobs.get_media_entry(media_id)
     if not media_entry:
         raise HTTPException(status_code=404, detail="Media no encontrado")
+    if media_entry.get("user_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="No autorizado para este media")
 
-    # 2. Validar propiedad
-    if media_entry.get("user_id") != user['id']:
-       raise HTTPException(status_code=403, detail="No autorizado para este media")
-
-    # 3. Obtener detalles para el job
+    # 2) Metadatos de origen y bucket de salida
     source_bucket = media_entry.get("source_bucket")
     source_object = media_entry.get("source_object")
-    output_bucket = source_bucket # Usamos el mismo bucket para salida
-
     if not source_bucket or not source_object:
         raise HTTPException(500, "Metadatos de media incompletos (sin bucket/object)")
+    output_bucket = source_bucket  # usamos el mismo bucket para la salida
 
-    # 4. Encolar el trabajo
+    # 3) Identidad del job y prefijo de salida
+    job_id = str(uuid.uuid4())
+    output_prefix = f"converted/{media_id}/{job_id}"  # mp3/mp4 => archivo; hls => carpeta con index.m3u8
+
+    # 4) Persistir estado inicial del job en Firestore
+    db = get_db()
+    media_ref = db.collection("media").document(media_id)
+    media_ref.set({
+        "job_ids": firestore.ArrayUnion([job_id]),
+        f"jobs.{job_id}": {
+            "target": target,
+            "status": "enqueued",
+            "output_prefix": output_prefix,
+            "details": None,
+            "updated_at": firestore.SERVER_TIMESTAMP,
+        }
+    }, merge=True)
+
+    # 5) Encolar en Redis con toda la info que el worker necesita
     try:
-        job_id = jobs.enqueue_conversion_job(
+        jobs.enqueue_conversion_job(
             media_id=media_id,
+            job_id=job_id,              # <- usar el MISMO job_id
+            target=target,
             source_bucket=source_bucket,
             source_object=source_object,
-            target=target,
-            output_bucket=output_bucket
+            output_bucket=output_bucket,
+            output_prefix=output_prefix  # <- importantísimo
         )
-        
-        # 5. Actualizar métricas
+
+        # 6) Métricas (si ya definiste el collector)
         api_jobs_enqueued_total.labels(target_format=target).inc()
-        
+
         return {
             "media_id": media_id,
-            "job_id": job_id, 
-            "status": "enqueued", 
+            "job_id": job_id,
+            "status": "enqueued",
             "target": target
         }
-        
-    except Exception as e:
-        print(f"Error encolando: {e}")
-        raise HTTPException(status_code=500, detail=f"Error al encolar trabajo")
 
+    except Exception as e:
+        print(f"[convert_media] Error encolando {job_id}: {e}")
+        raise HTTPException(status_code=500, detail="Error al encolar trabajo")
 
 @app.get("/jobs/{job_id}/status")
-def get_job_status(job_id: str, user = Depends(current_user)):
-    media_entry = jobs.get_media_by_job_id(job_id)
-    
-    if not media_entry:
-        raise HTTPException(status_code=404, detail="Job ID no encontrado")
+def job_status(
+    job_id: str,
+    media_id: Optional[str] = None,
+    user = Depends(current_user)
+):
+    # Permite pasar media_id para evitar la búsqueda por array_contains
+    media = jobs.get_media_entry(media_id) if media_id else jobs.get_media_by_job_id(job_id)
+    if not media:
+        raise HTTPException(404, "No se encontró media para este job")
 
-    # 2. Validar que el job pertenece al usuario
-    if media_entry.get("user_id") != user['id']:
-       raise HTTPException(status_code=403, detail="No autorizado para este Job ID")
+    if media.get("user_id") != user["id"]:
+        raise HTTPException(403, "No autorizado")
 
-    # 3. Retornar el estado (leyendo del mapa 'jobs')
-    job_details = media_entry.get("jobs", {}).get(job_id)
-    
-    if not job_details:
-        # Esto no debería pasar si get_media_by_job_id funcionó
-        raise HTTPException(status_code=500, detail="Inconsistencia de datos")
-        
+    job = (media.get("jobs") or {}).get(job_id)
+    if not job:
+        raise HTTPException(404, "Job no existe en este media")
+
+    # Respuesta consistente
     return {
         "job_id": job_id,
-        "media_id": media_entry.get("id"),
-        "status": job_details.get("status"),
-        "target": job_details.get("target"),
-        "details": job_details.get("details"), # Detalles (ej. error)
-        "updated_at": job_details.get("updated_at")
+        "media_id": media["id"],
+        **job
     }
 
 @app.get("/media/{media_id}/share")

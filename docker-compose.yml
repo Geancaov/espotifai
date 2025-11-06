@@ -48,6 +48,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
+      - PYTHONPATH=/app
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_QUEUE=convert
@@ -58,11 +59,13 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_SECURE=false
+      - FIREBASE_PROJECT_ID=espotifai-81056
     depends_on:
       - redis
       - minio
     volumes:
       - ./backend:/app
+      - ./backend/keys:/app/keys:ro
 
 volumes:
   minio-data:
