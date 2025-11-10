@@ -45,6 +45,7 @@ def convert_to_hls(input_path: str, output_dir: str, playlist_name: str = "index
         "-y",
         "-i", input_path,
         "-codec:", "copy",
+        "-c", "copy",
         "-start_number", "0",
         "-hls_time", "5",
         "-hls_list_size", "0",

@@ -16,6 +16,7 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_SECURE=false
+      - PYTHONPATH=/app
     ports:
       - "8000:8000"
     depends_on:
@@ -60,6 +61,7 @@ services:
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_SECURE=false
       - FIREBASE_PROJECT_ID=espotifai-81056
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/service-account.json
     depends_on:
       - redis
       - minio

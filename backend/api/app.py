@@ -145,19 +145,6 @@ def convert_media(
     job_id = str(uuid.uuid4())
     output_prefix = f"converted/{media_id}/{job_id}"  # mp3/mp4 => archivo; hls => carpeta con index.m3u8
 
-    # 4) Persistir estado inicial del job en Firestore
-    db = get_db()
-    media_ref = db.collection("media").document(media_id)
-    media_ref.set({
-        "job_ids": firestore.ArrayUnion([job_id]),
-        f"jobs.{job_id}": {
-            "target": target,
-            "status": "enqueued",
-            "output_prefix": output_prefix,
-            "details": None,
-            "updated_at": firestore.SERVER_TIMESTAMP,
-        }
-    }, merge=True)
 
     # 5) Encolar en Redis con toda la info que el worker necesita
     try:
@@ -243,11 +230,10 @@ def share_media(
             raise HTTPException(status_code=404, detail="Job ID no encontrado en este media")
         job_details = all_jobs[target_job_id]
     else:
-        # El usuario no especificó, buscar el primero que esté "done"
         for j_id, j_details in all_jobs.items():
             if j_details.get("status") == "done":
                 job_details = j_details
-                target_job_id = j_id # Encontramos el ID
+                target_job_id = j_id 
                 break
 
     if not job_details:
@@ -256,13 +242,9 @@ def share_media(
     if job_details.get("status") != "done":
         raise HTTPException(status_code=400, detail=f"El Job {target_job_id} no está completado (estado: {job_details.get('status')})")
 
-    # 4. Determinar el 'object_name' en MinIO
-    
-    # El worker (Integrante B) debe guardar la ruta de salida.
-    # Asumiremos la estructura basada en la lógica del worker
     
     bucket = media_entry.get("source_bucket")
-    prefix = job_details.get("output_prefix") # Ej: "media/media_id/conversions/job_id/"
+    prefix = job_details.get("output_prefix") 
     target = job_details.get("target")
 
     if not bucket or not prefix or not target:
@@ -270,12 +252,11 @@ def share_media(
 
     object_name = ""
     if target == "mp3":
-        object_name = f"{prefix}{target_job_id}.mp3"
+        object_name = f"{prefix}.mp3"
     elif target == "mp4":
-        object_name = f"{prefix}{target_job_id}.mp4"
+        object_name = f"{prefix}.mp4"
     elif target == "hls":
-        # El archivo principal de HLS es el playlist
-        object_name = f"{prefix}index.m3u8"
+        object_name = f"{prefix}/index.m3u8"
     else:
         raise HTTPException(status_code=500, detail=f"Target desconocido: {target}")
 
