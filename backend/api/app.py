@@ -200,16 +200,13 @@ def job_status(
 @app.get("/media/{media_id}/share")
 def share_media(
     media_id: str, 
-    job_id: Optional[str] = None, # (NUEVO) Param opcional
+    job_id: Optional[str] = None,  # Param opcional
     user = Depends(current_user)
 ):
     """
-    (IMPLEMENTADO) Genera una URL presignada para descargar un 
-    resultado de conversión (ej. el .mp3 o el .m3u8).
-    
+    Genera una URL presignada para descargar un resultado de conversión.
     Si 'job_id' no se provee, busca el primer job completado.
     """
-    
     # 1. Obtener media_entry de Firestore
     media_entry = jobs.get_media_entry(media_id)
     if not media_entry:
@@ -217,12 +214,12 @@ def share_media(
 
     # 2. Validar que pertenece al usuario
     if media_entry.get("user_id") != user['id']:
-       raise HTTPException(status_code=403, detail="No autorizado")
+        raise HTTPException(status_code=403, detail="No autorizado")
 
     # 3. Encontrar el job_details que queremos compartir
     all_jobs = media_entry.get("jobs", {})
     job_details = None
-    target_job_id = job_id # El job que buscamos
+    target_job_id = job_id
 
     if target_job_id:
         # El usuario especificó un job_id
@@ -233,7 +230,7 @@ def share_media(
         for j_id, j_details in all_jobs.items():
             if j_details.get("status") == "done":
                 job_details = j_details
-                target_job_id = j_id 
+                target_job_id = j_id
                 break
 
     if not job_details:
@@ -242,33 +239,36 @@ def share_media(
     if job_details.get("status") != "done":
         raise HTTPException(status_code=400, detail=f"El Job {target_job_id} no está completado (estado: {job_details.get('status')})")
 
-    
-    bucket = media_entry.get("source_bucket")
-    prefix = job_details.get("output_prefix") 
+    bucket = job_details.get("output_bucket") or media_entry.get("source_bucket")
+    output_object = job_details.get("output_object")
     target = job_details.get("target")
+    output_prefix = job_details.get("output_prefix")
 
-    if not bucket or not prefix or not target:
-         raise HTTPException(status_code=500, detail="Metadatos del job incompletos")
+    if not bucket:
+        raise HTTPException(status_code=500, detail="Metadatos del job incompletos (bucket)")
 
-    object_name = ""
-    if target == "mp3":
-        object_name = f"{prefix}.mp3"
-    elif target == "mp4":
-        object_name = f"{prefix}.mp4"
-    elif target == "hls":
-        object_name = f"{prefix}/index.m3u8"
+    if output_object:
+        object_name = output_object
     else:
-        raise HTTPException(status_code=500, detail=f"Target desconocido: {target}")
+        if not target or not output_prefix:
+            raise HTTPException(status_code=500, detail="Metadatos del job incompletos (target/prefix)")
+        if target == "mp3":
+            object_name = f"{output_prefix}.mp3"
+        elif target == "mp4":
+            object_name = f"{output_prefix}.mp4"
+        elif target == "hls":
+            object_name = f"{output_prefix}/index.m3u8"
+        else:
+            raise HTTPException(status_code=500, detail=f"Target desconocido: {target}")
+    # === 🔼 Hasta aquí el bloque nuevo 🔼 ===
 
-    # 5. Llamar a jobs.get_presigned_url_for_download()
+    # 5. Generar URL presignada
     try:
         url = jobs.get_presigned_url_for_download(
             bucket=bucket,
             object_name=object_name
         )
-        # 6. Retornar la URL
         return {"url": url, "target": target, "job_id": target_job_id}
-        
     except Exception as e:
         print(f"Error generando URL presignada: {e}")
         raise HTTPException(status_code=500, detail="No se pudo generar la URL de descarga")

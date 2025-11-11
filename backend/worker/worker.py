@@ -1,11 +1,12 @@
+#backend/api/worker/worker
 import os
 import json
 import time
 import logging
 from pathlib import Path
-
 import redis
 from prometheus_client import start_http_server, Counter, Gauge
+from google.cloud import firestore
 
 from ffmpeg_tasks import (
     convert_to_mp3,
@@ -18,6 +19,7 @@ from api.firebase_db import (
     mark_media_job_processing,
     mark_media_job_done,
     mark_media_job_failed,
+    update_media_job_fields,
 )
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
@@ -158,9 +160,27 @@ def main() -> None:
 
                 # ---- estado: done ----
                 if media_id and job_id:
-                    mark_media_job_done(media_id, job_id, output_prefix=job.get("output_prefix"))
+                    target = job.get("target")
+                    output_prefix = job.get("output_prefix")
+                    output_bucket = job.get("output_bucket")
 
-                jobs_done_total.labels(worker_id=WORKER_ID).inc()
+                    # Derivar el objeto final en MinIO
+                    if target == "hls":
+                        object_name = f"{output_prefix}/index.m3u8"
+                    else:
+                        object_name = f"{output_prefix}{Path(output_path).suffix}"
+
+                    # Marca done como antes (conserva tu lógica existente)
+                    # --- BLOQUE CORREGIDO (Opción 2) ---
+                    update_media_job_fields(media_id, job_id,
+                        status="done",
+                        output_prefix=output_prefix,
+                        target=target,
+                        output_bucket=output_bucket,
+                        output_object=object_name,
+                        updated_at=firestore.SERVER_TIMESTAMP
+                    )
+            
             except Exception as e:
                 logger.exception(f"[{WORKER_ID}] job failed: {e}")
                 jobs_failed_total.labels(worker_id=WORKER_ID).inc()
