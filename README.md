@@ -521,44 +521,62 @@ espotifai/
 
 ```mermaid
 sequenceDiagram
-    Usuario->>Frontend: Introduce credenciales
-    Frontend->>API: POST /auth/token
-    API->>Firestore: Valida usuario
-    Firestore-->>API: Datos usuario
-    API-->>Frontend: JWT token
-    Frontend->>Frontend: Guarda token
+    participant U as Usuario
+    participant F as Frontend
+    participant A as API
+    participant DB as Firestore
+    
+    U->>F: Introduce credenciales
+    F->>A: POST /auth/token
+    A->>DB: Valida usuario
+    DB-->>A: Datos usuario
+    A-->>F: JWT token
+    F->>F: Guarda token
 ```
 
 ### 2. Subida de archivo
 
 ```mermaid
 sequenceDiagram
-    Usuario->>Frontend: Selecciona archivo
-    Frontend->>API: POST /media/upload
-    API->>MinIO: Sube archivo original
-    MinIO-->>API: Confirmación
-    API->>Firestore: Guarda metadatos
-    Firestore-->>API: media_id
-    API-->>Frontend: Datos del media
+    participant U as Usuario
+    participant F as Frontend
+    participant A as API
+    participant M as MinIO
+    participant DB as Firestore
+    
+    U->>F: Selecciona archivo
+    F->>A: POST /media/upload
+    A->>M: Sube archivo original
+    M-->>A: Confirmacion
+    A->>DB: Guarda metadatos
+    DB-->>A: media_id
+    A-->>F: Datos del media
 ```
 
 ### 3. Conversión de archivo
 
 ```mermaid
 sequenceDiagram
-    Usuario->>API: POST /media/{id}/convert
-    API->>Firestore: Crea job entry
-    API->>Redis: Encola trabajo
-    Redis-->>API: Confirmación
-    API-->>Usuario: job_id
-    Worker->>Redis: BLPOP (obtiene trabajo)
-    Worker->>MinIO: Descarga archivo original
-    Worker->>Worker: Procesa con FFmpeg
-    Worker->>MinIO: Sube archivo convertido
-    Worker->>Firestore: Actualiza estado "done"
-    Usuario->>API: GET /jobs/{id}/status
-    API->>Firestore: Consulta estado
-    API-->>Usuario: Estado actualizado
+    participant U as Usuario
+    participant A as API
+    participant DB as Firestore
+    participant R as Redis
+    participant W as Worker
+    participant M as MinIO
+    
+    U->>A: POST /media/{id}/convert
+    A->>DB: Crea job entry
+    A->>R: Encola trabajo
+    R-->>A: Confirmacion
+    A-->>U: job_id
+    W->>R: BLPOP (obtiene trabajo)
+    W->>M: Descarga archivo original
+    W->>W: Procesa con FFmpeg
+    W->>M: Sube archivo convertido
+    W->>DB: Actualiza estado done
+    U->>A: GET /jobs/{id}/status
+    A->>DB: Consulta estado
+    A-->>U: Estado actualizado
 ```
 
 ## 📊 Monitoreo
