@@ -613,7 +613,7 @@ docker-compose down
 docker-compose restart
 ```
 
-### Limpiar volúmenes (⚠️ elimina datos)
+### Limpiar volúmenes (elimina datos)
 ```bash
 docker-compose down -v
 ```
@@ -630,37 +630,6 @@ docker-compose up -d
 docker-compose up -d --scale worker_a=3
 ```
 
-## 🐛 Troubleshooting
-
-### Error: "Redis connection failed"
-- Verificar que el contenedor de Redis esté corriendo: `docker-compose ps`
-- Revisar logs: `docker-compose logs redis`
-
-### Error: "MinIO bucket not found"
-- Acceder a MinIO Console y verificar que el bucket existe
-- El bucket se crea automáticamente en la primera subida
-
-### Error: "Firebase credentials invalid"
-- Verificar que `service-account.json` esté en `backend/keys/`
-- Comprobar que `GOOGLE_APPLICATION_CREDENTIALS` apunte al archivo correcto
-
-### Workers no procesan trabajos
-- Verificar que estén corriendo: `docker-compose ps`
-- Revisar logs: `docker-compose logs -f worker_a`
-- Comprobar que haya trabajos en la cola: `redis-cli LLEN convert`
-
-## 🔐 Seguridad
-
-### Recomendaciones para producción
-
-1. **Variables de entorno**: Usar secretos en lugar de archivos `.env`
-2. **MinIO**: Cambiar credenciales por defecto
-3. **JWT**: Usar clave secreta robusta y rotarla periódicamente
-4. **HTTPS**: Configurar certificados SSL/TLS
-5. **Firestore**: Configurar reglas de seguridad apropiadas
-6. **CORS**: Restringir orígenes permitidos en producción
-7. **Rate limiting**: Implementar límites de peticiones por IP
-8. **Validación**: Validar tamaños y tipos de archivos
 
 ## 📄 Licencia
 
@@ -669,13 +638,8 @@ Este proyecto es de código abierto para fines educativos.
 ## 👥 Autores
 
 - Geancaov - [GitHub](https://github.com/Geancaov)
-
-## 🙏 Agradecimientos
-
-- FastAPI por el excelente framework
-- Firebase por los servicios de autenticación
-- FFmpeg por las capacidades de conversión multimedia
-- La comunidad de código abierto
+- lizsalazar21 - [Github](https://github.com/lizsalazar21)
+- SMatey - [Github](https://github.com/SMatey)
 
 ---
 
