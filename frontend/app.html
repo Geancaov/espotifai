@@ -943,17 +943,6 @@
                   CPU: <span id="monApiCpu">-</span> · RAM: <span id="monApiRam">-</span>
                 </div>
               </div>
-              <div class="monitor-node">
-                <div class="monitor-label">Workers</div>
-                <div class="monitor-value" id="monWorkersStatus">-</div>
-                <div class="monitor-meta">
-                  Cola: <span id="monQueueLen">-</span> jobs
-                </div>
-              </div>
-              <div class="monitor-node">
-                <div class="monitor-label">Sesiones</div>
-                <div class="monitor-value" id="monSessionsCount">-</div>
-              </div>
             </div>
             <div class="monitor-footer">
               <span><span id="monLastUpdate">-</span></span>
@@ -1307,6 +1296,12 @@
               <div class="table-actions">
                 <button type="button"
                         class="table-btn"
+                        data-action="select"
+                        data-idx="${idx}">
+                  Seleccionar
+                </button>
+                <button type="button"
+                        class="table-btn"
                         data-action="copy"
                         data-idx="${idx}"
                         ${hasUrl ? "" : "disabled"}>
@@ -1351,6 +1346,18 @@
       const item = recentItems[idx];
       if (!item) return;
 
+      // Nuevo: seleccionar archivo para compartir / reproducir
+      if (action === "select") {
+        selectRecent(idx);
+        // Opcional: cambiar automáticamente a la vista de compartir
+        if (typeof applyView === "function") {
+          applyView("share");
+        }
+        setStatus("Archivo seleccionado. Revisa la sección de 'Compartir'.", "ok");
+        return;
+      }
+
+      // A partir de aquí, acciones que sí requieren URL (como copiar link)
       if (!item.url) {
         setStatus(
           "Primero genera la URL presignada con 'Generar URL'.",
