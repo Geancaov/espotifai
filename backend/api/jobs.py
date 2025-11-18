@@ -95,11 +95,10 @@ def create_media_entry(
     original_filename: str, 
     source_bucket: str, 
     source_object: str,
-    content_type: str
+    content_type: str,
+    original_extension: str,
+    original_size_bytes: int,
 ) -> Dict[str, Any]:
-    """
-    (MODIFICADO) Crea un nuevo documento 'media', añadiendo el array 'job_ids'.
-    """
     media_ref = db().collection("media").document()
     media_data = {
         "user_id": user_id,
@@ -107,10 +106,13 @@ def create_media_entry(
         "source_bucket": source_bucket,
         "source_object": source_object,
         "content_type": content_type,
+        "original_extension": original_extension,
+        "original_size_bytes": original_size_bytes,
         "created_at": datetime.datetime.utcnow(),
         "status": "uploaded",
-        "jobs": {}, # Objeto para guardar detalles
-        "job_ids": [] # (NUEVO) Array para búsquedas
+        "jobs": {},
+        "job_ids": [],
+        "shared_with": [],   # 🔹 NUEVO: lista de usuarios con acceso
     }
     media_ref.set(media_data)
     

@@ -1,0 +1,1909 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    :root {
+      --bg-body: #11121E;
+      --bg-sidebar: #05070d;
+      --bg-main: #151726;
+      --bg-card: #1b1d2f;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --accent: #F24E1E;
+      --accent-soft: #f97316;
+      --border-soft: #1f2433;
+      --row-hover: #222435;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #20233a 0, #05070d 60%);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .video-preview {
+      width: 100%;
+      max-height: 260px;
+      border-radius: 12px;
+      background: #000;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 1360px;
+      height: 840px;
+      max-height: none;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 78px minmax(0, 1fr);
+      box-shadow: 0 25px 60px rgba(0,0,0,0.9);
+      border: 1px solid var(--border-soft);
+    }
+
+    @media (max-width: 1100px) {
+      .app-shell {
+        grid-template-columns: 72px minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 820px) {
+      .app-shell {
+        grid-template-columns: minmax(0, 1fr);
+        height: auto;
+        max-height: none;
+      }
+      .sidebar {
+        display: none;
+      }
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      background: var(--bg-sidebar);
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      border-right: 1px solid #1a1d29;
+    }
+
+    .sidebar-logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      object-fit: cover;
+      box-shadow: 0 0 18px rgba(242,78,30,0.7);
+      margin-bottom: 6px;
+    }
+
+    .side-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .side-btn {
+      width: 100%;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      padding: 8px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .side-btn-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      background: #121422;
+    }
+
+    .side-btn.active .side-btn-icon {
+      background: var(--accent);
+      color: #020617;
+      box-shadow: 0 0 18px rgba(242,78,30,0.8);
+    }
+
+    .side-btn.active {
+      color: #e5e7eb;
+    }
+
+    .side-btn:hover {
+      background: #181b26;
+    }
+
+    .side-footer {
+      margin-top: auto;
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* MAIN LAYOUT */
+    .main {
+      background: var(--bg-main);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .top-nav {
+      height: 46px;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.1));
+      flex-shrink: 0;
+    }
+
+    .top-nav-title {
+      font-size: 13px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .user-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .user-chip {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .logout-btn {
+      border: none;
+      background: #050816;
+      color: var(--accent);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(242,78,30,0.6);
+    }
+
+    .user-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #0f172a;
+      border: 1px solid rgba(148,163,184,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #e5e7eb;
+      text-transform: uppercase;
+    }
+
+    .logout-btn:hover {
+      background: rgba(242,78,30,0.15);
+    }
+
+    /* PLAYLIST HEADER */
+    .playlist-header {
+      padding: 18px 22px 14px;
+      background: linear-gradient(135deg, #F24E1E 0%, #11121E 55%, #05070d 90%);
+      display: flex;
+      gap: 18px;
+      align-items: flex-end;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.7);
+      flex-shrink: 0;
+    }
+
+    .playlist-cover {
+      width: 164px;
+      height: 164px;
+      border-radius: 16px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: radial-gradient(circle at top, #11121E 0, #11121E 100%, #f97316 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,100);
+    }
+
+    .playlist-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      mix-blend-mode: screen;
+    }
+
+    .playlist-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .playlist-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+    }
+
+    .playlist-title {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    .playlist-desc {
+      font-size: 13px;
+      max-width: 520px;
+      color: #f3f4f6;
+    }
+
+    .playlist-submeta {
+      font-size: 12px;
+      color: #e5e7eb;
+    }
+
+    /* MAIN INNER */
+    .main-inner {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.1fr);
+      gap: 16px;
+      padding: 14px 18px 10px;
+      overflow-y: visible;
+      min-height: 0;
+    }
+
+    @media (max-width: 1100px) {
+      .main-inner {
+        grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.2fr);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .main-inner {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .main-left,
+    .main-right {
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 14px 16px 12px;
+      border: 1px solid #1f2937;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.8);
+    }
+
+    .card + .card {
+      margin-top: 10px;
+    }
+
+    .monitor-card {
+      margin-top: 10px;
+    }
+
+    .monitor-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .monitor-node {
+      background: #0b0d18;
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid #1f2937;
+    }
+
+    .monitor-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .monitor-value {
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .monitor-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .monitor-footer {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .card-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .card-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    /* FUNCTION TABS */
+    .func-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .func-btn {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      background: #05070d;
+      color: var(--text-muted);
+    }
+
+    .func-btn.active {
+      background: var(--accent);
+      color: #05070d;
+      box-shadow: 0 0 18px rgba(242,78,30,0.7);
+    }
+
+    .func-btn:hover {
+      background: #181b26;
+      color: #e5e7eb;
+    }
+
+    .func-view {
+      display: none;
+      margin-top: 4px;
+    }
+
+    .func-view.active {
+      display: block;
+      animation: fadeSlideIn 200ms ease;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .field {
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .input, .select {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 7px;
+      border: 1px solid #3a3f51;
+      background: #05070d;
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .input::placeholder {
+      color: #6b7280;
+    }
+
+    .input[readonly] { opacity: 0.85; }
+
+    .input:focus, .select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(242,78,30,0.55);
+    }
+
+    .btn-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      background: var(--accent);
+      color: #05070d;
+      font-weight: 500;
+    }
+
+    .table-actions {
+      display: flex;
+      flex-direction: row;
+      gap: 6px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .table-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: none;
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      background: #0f172a;
+      color: #e5e7eb;
+      white-space: nowrap;
+    }
+
+    .table-btn:not(:disabled):hover {
+      background: #111827;
+    }
+
+    .table-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn:hover { background: var(--accent-soft); }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid #374151;
+      color: var(--text-muted);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(55,65,81,0.35);
+      color: #f9fafb;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* TABLE de recientes */
+    .table-wrapper {
+      margin-top: 10px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #1f2937;
+      background: #05070d;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    thead {
+      background: #101322;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    th, td {
+      padding: 6px 10px;
+      text-align: left;
+    }
+
+    th:nth-child(1),
+    td:nth-child(1) {
+      width: 32px;
+    }
+
+    tbody {
+      display: block;
+    }
+
+    thead tr, tbody tr {
+      display: grid;
+      grid-template-columns:
+        40px minmax(0, 1.5fr) minmax(0, 1.1fr)
+        minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1.1fr);
+      align-items: center;
+    }
+
+    tbody tr {
+      cursor: pointer;
+      border-top: 1px solid #111827;
+    }
+
+    tbody tr:hover {
+      background: var(--row-hover);
+    }
+
+    tbody tr.selected {
+      background: #272a3c;
+    }
+
+    .col-status {
+      color: #a7f3d0;
+    }
+
+    .empty-row td {
+      text-align: center;
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 10px;
+      grid-column: 1 / -1;
+    }
+
+    /* RIGHT PANEL */
+    .details-card pre {
+      margin-top: 8px;
+      background: #020617;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 11px;
+      max-height: 206px;
+      overflow: auto;
+      border: 1px solid #1f2937;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .player-card {
+      margin-top: 10px;
+    }
+
+    .player-info {
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .player-title {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .player-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* PLAYER */
+    .player-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .player-play {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      border: none;
+      background: #1db954;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 0 18px rgba(29,185,84,0.6);
+      flex-shrink: 0;
+    }
+
+    .player-play span {
+      font-size: 18px;
+      color: #020617;
+      margin-left: 2px;
+    }
+
+    .player-play.paused span {
+      margin-left: 0;
+    }
+
+    .player-timeline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .player-timeline span {
+      width: 40px;
+      text-align: center;
+    }
+
+    .player-seek {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: #374151;
+      flex: 1;
+      cursor: pointer;
+    }
+
+    .player-seek::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(242,78,30,0.7);
+    }
+
+    .player-seek::-moz-range-thumb {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: none;
+      box-shadow: 0 0 10px rgba(242,78,30,0.7);
+    }
+
+    .player-extra {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    /* FOOTER STATUS */
+    .bottom-status {
+      height: 30px;
+      padding: 4px 20px 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-soft);
+      background: #05070d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .status-ok { color: #4ade80; }
+    .status-error { color: #f97373; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <img src="logotipo.png" alt="Espotifai" class="sidebar-logo" />
+      <div class="side-nav">
+        <button class="side-btn active" data-view="upload">
+          <div class="side-btn-icon">⭳</div>
+          <div>Upload</div>
+        </button>
+        <button class="side-btn" data-view="convert">
+          <div class="side-btn-icon">⏩</div>
+          <div>Convert</div>
+        </button>
+        <button class="side-btn" data-view="status">
+          <div class="side-btn-icon">⏱</div>
+          <div>Status</div>
+        </button>
+        <button class="side-btn" data-view="share">
+          <div class="side-btn-icon">🔗</div>
+          <div>Share</div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <!-- TOP NAV -->
+      <div class="top-nav">
+        <div class="top-nav-title" id="viewTitle">UPLOAD</div>
+        <div class="user-area">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <span class="user-chip" id="userInfo">Cargando usuario...</span>
+          <button class="logout-btn" id="btnLogout">Log out</button>
+        </div>
+      </div>
+
+      <!-- PLAYLIST HEADER -->
+      <section class="playlist-header">
+        <div class="playlist-cover">
+          <img src="logotipo.png" alt="Espotifai cover" />
+        </div>
+        <div class="playlist-meta">
+          <!-- Texto descriptivo opcional -->
+        </div>
+      </section>
+
+      <!-- MAIN INNER -->
+      <div class="main-inner">
+        <!-- LEFT -->
+        <div class="main-left">
+          <!-- FORM CARD -->
+          <div class="card">
+            <div class="card-title">Acciones</div>
+
+            <!-- TABS -->
+            <div class="func-tabs">
+              <button class="func-btn active" data-func="upload">Upload</button>
+              <button class="func-btn" data-func="convert">Convert</button>
+              <button class="func-btn" data-func="status">Status</button>
+              <button class="func-btn" data-func="share">Share</button>
+            </div>
+
+            <!-- VISTAS -->
+            <div class="func-view active" data-func="upload">
+              <div class="field">
+                <label for="file">Archivo</label>
+                <input class="input" type="file" id="file" />
+                <div class="hint">Formatos típicos: .mp3, .wav, .mp4, .mov, etc.</div>
+              </div>
+              <div class="btn-row">
+                <button class="btn" id="btnUpload">Subir archivo</button>
+              </div>
+              <div class="field" style="margin-top:10px;">
+                <label for="mediaIdUpload">media_id actual</label>
+                <input class="input" id="mediaIdUpload" readonly placeholder="Se llenará al subir" />
+              </div>
+            </div>
+
+            <div class="func-view" data-func="convert">
+              <div class="field">
+                <label for="mediaIdConvert">media_id</label>
+                <input class="input" id="mediaIdConvert" placeholder="Por defecto usa el último media_id conocido" />
+                <div class="hint">Si lo dejas vacío, se usará el último <code>media_id</code> guardado.</div>
+              </div>
+              <div class="field">
+                <label for="target">Formato destino</label>
+                <select class="select" id="target">
+                  <option value="mp3">mp3</option>
+                  <option value="mp4">mp4</option>
+                  <option value="hls">hls</option>
+                </select>
+              </div>
+              <div class="btn-row">
+                <button class="btn" id="btnConvert">Encolar conversión</button>
+              </div>
+              <div class="field" style="margin-top:10px;">
+                <label for="jobIdConvert">job_id actual</label>
+                <input class="input" id="jobIdConvert" readonly placeholder="Se llenará al convertir" />
+              </div>
+            </div>
+
+            <div class="func-view" data-func="status">
+              <div class="field">
+                <label for="jobIdStatus">job_id</label>
+                <input class="input" id="jobIdStatus" placeholder="Por defecto usa el último job_id conocido" />
+              </div>
+              <div class="field">
+                <label for="mediaIdStatus">media_id (opcional)</label>
+                <input class="input" id="mediaIdStatus" placeholder="Opcional para filtrar por media" />
+              </div>
+              <div class="btn-row">
+                <button class="btn-ghost" id="btnStatus">Consultar status</button>
+              </div>
+            </div>
+
+            <div class="func-view" data-func="share">
+              <div class="field">
+                <label for="mediaIdShare">media_id</label>
+                <input class="input" id="mediaIdShare" placeholder="Por defecto usa el último media_id conocido" />
+              </div>
+              <div class="field">
+                <label for="jobIdShare">job_id (opcional)</label>
+                <input class="input" id="jobIdShare" placeholder="Normalmente el job de la conversión" />
+              </div>
+              <div class="btn-row">
+                <button class="btn" id="btnShare">Generar URL</button>
+              </div>
+
+              <hr style="margin: 14px 0; border-color: #1f2937;" />
+
+              <!-- NUEVO: lista de usuarios -->
+              <div class="field">
+                <label for="shareUserSelect">Compartir con usuario (interno)</label>
+                <select class="select" id="shareUserSelect">
+                  <option value="">Selecciona un usuario...</option>
+                </select>
+                <div class="hint">
+                  La lista se carga desde el backend y muestra los usuarios registrados (se excluye tu usuario actual).
+                </div>
+              </div>
+              <div class="btn-row">
+                <button class="btn-ghost" id="btnShareUser">Compartir con usuario</button>
+                <button class="btn-ghost" id="btnLoadSharedWithMe">Cargar compartidos conmigo</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABLE CARD -->
+          <div class="card">
+            <div class="card-title">Recientes (sesión actual)</div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Título</th>
+                    <th>Estado</th>
+                    <th>media_id</th>
+                    <th>job_id</th>
+                    <th>Compartir</th>
+                  </tr>
+                </thead>
+                <tbody id="recentTableBody">
+                  <!-- filas dinámicas -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <aside class="main-right">
+          <div class="card details-card">
+            <div class="card-title">Vista de video</div>
+            <video
+              id="playerVideo"
+              class="video-preview"
+              controls
+              style="width: 100%; border-radius: 12px; background: #000; display: none;"
+            ></video>
+          </div>
+
+          <div class="card player-card">
+            <div class="player-info">
+              <div class="player-title" id="playerTitle">Sin medio seleccionado</div>
+              <div class="player-subtitle" id="playerSubtitle"></div>
+            </div>
+
+            <div class="player-bar">
+              <button id="btnPlayPause" class="player-play">
+                <span id="iconPlayPause">▶</span>
+              </button>
+              <div class="player-timeline">
+                <span id="playerCurrent">0:00</span>
+                <input type="range" id="playerSeek" class="player-seek" min="0" max="100" value="0" />
+                <span id="playerDuration">0:00</span>
+              </div>
+            </div>
+
+            <audio id="playerAudio"></audio>
+          </div>
+
+          <div class="card monitor-card">
+            <div class="card-title">Dashboard</div>
+            <div class="monitor-grid">
+              <div class="monitor-node">
+                <div class="monitor-label">API</div>
+                <div class="monitor-value" id="monApiStatus">-</div>
+                <div class="monitor-meta">
+                  CPU: <span id="monApiCpu">-</span> · RAM: <span id="monApiRam">-</span>
+                </div>
+              </div>
+              <div class="monitor-node">
+                <div class="monitor-label">Workers</div>
+                <div class="monitor-value" id="monWorkersStatus">-</div>
+                <div class="monitor-meta">
+                  Cola: <span id="monQueueLen">-</span> jobs
+                </div>
+              </div>
+              <div class="monitor-node">
+                <div class="monitor-label">Sesiones</div>
+                <div class="monitor-value" id="monSessionsCount">-</div>
+              </div>
+            </div>
+            <div class="monitor-footer">
+              <span><span id="monLastUpdate">-</span></span>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- FOOTER STATUS -->
+      <div class="bottom-status">
+        <span id="statusBar">Cargando sesión...</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:8000";
+
+    const userInfo = document.getElementById("userInfo");
+    const userAvatar = document.getElementById("userAvatar");
+    const statusBar = document.getElementById("statusBar");
+    const viewTitle = document.getElementById("viewTitle");
+
+    const playerTitle = document.getElementById("playerTitle");
+    const playerSubtitle = document.getElementById("playerSubtitle");
+    const playerAudio = document.getElementById("playerAudio");
+    const playerVideo = document.getElementById("playerVideo");
+    const btnPlayPause = document.getElementById("btnPlayPause");
+    const iconPlayPause = document.getElementById("iconPlayPause");
+    const playerSeek = document.getElementById("playerSeek");
+    const playerCurrent = document.getElementById("playerCurrent");
+    const playerDuration = document.getElementById("playerDuration");
+
+    const recentTableBody = document.getElementById("recentTableBody");
+
+    let lastMediaId = null;
+    let lastJobId = null;
+    let recentItems = [];
+    let selectedRowIndex = -1;
+
+    /* ========= UTIL PLAYER ========= */
+
+    function formatTime(sec) {
+      if (!isFinite(sec)) return "0:00";
+      const s = Math.floor(sec % 60);
+      const m = Math.floor(sec / 60);
+      return `${m}:${String(s).padStart(2, "0")}`;
+    }
+
+    function resetPlayerUI() {
+      playerSeek.value = 0;
+      playerSeek.max = 100;
+      playerCurrent.textContent = "0:00";
+      playerDuration.textContent = "0:00";
+      btnPlayPause.classList.remove("paused");
+      iconPlayPause.textContent = "▶";
+
+      if (playerVideo) {
+        playerVideo.pause();
+        playerVideo.removeAttribute("src");
+        playerVideo.style.display = "none";
+      }
+    }
+
+    function updatePlayIcon() {
+      if (playerAudio.paused) {
+        btnPlayPause.classList.remove("paused");
+        iconPlayPause.textContent = "▶";
+      } else {
+        btnPlayPause.classList.add("paused");
+        iconPlayPause.textContent = "⏸";
+      }
+    }
+
+    btnPlayPause.addEventListener("click", () => {
+      if (!playerAudio.src) return;
+      if (playerAudio.paused) {
+        playerAudio.play().catch(() => {});
+      } else {
+        playerAudio.pause();
+      }
+    });
+
+    playerAudio.addEventListener("loadedmetadata", () => {
+      const dur = isFinite(playerAudio.duration) ? playerAudio.duration : 0;
+      playerDuration.textContent = formatTime(dur);
+      playerSeek.max = dur || 100;
+      playerSeek.value = 0;
+      playerCurrent.textContent = "0:00";
+      updatePlayIcon();
+    });
+
+    playerAudio.addEventListener("timeupdate", () => {
+      if (!isFinite(playerAudio.duration)) return;
+      playerSeek.value = playerAudio.currentTime;
+      playerCurrent.textContent = formatTime(playerAudio.currentTime);
+    });
+
+    playerAudio.addEventListener("ended", () => {
+      playerAudio.currentTime = 0;
+      updatePlayIcon();
+    });
+
+    playerSeek.addEventListener("input", () => {
+      if (!isFinite(playerAudio.duration)) return;
+      playerAudio.currentTime = Number(playerSeek.value);
+      playerCurrent.textContent = formatTime(playerAudio.currentTime);
+    });
+
+    playerAudio.addEventListener("play", updatePlayIcon);
+    playerAudio.addEventListener("pause", updatePlayIcon);
+
+    /* ========= DASHBOARD ========= */
+
+    async function fetchMonitorSummary() {
+      const headers = authHeaders();
+      if (!headers) return;
+
+      try {
+        const res = await fetch(API_BASE + "/monitor/summary", { headers });
+        if (!res.ok) {
+          setStatus("Error al cargar dashboard (" + res.status + ")", "error");
+          return;
+        }
+        const j = await res.json();
+
+        const api = j.api || {};
+        const apiStatus = api.status || "desconocido";
+        const cpu = api.cpu_percent;
+        const mem = api.memory_percent;
+
+        const monApiStatus = document.getElementById("monApiStatus");
+        const monApiCpu = document.getElementById("monApiCpu");
+        const monApiRam = document.getElementById("monApiRam");
+
+        if (monApiStatus) monApiStatus.textContent = apiStatus.toUpperCase();
+        if (monApiCpu) monApiCpu.textContent =
+          cpu != null ? cpu.toFixed(1) + "%" : "-";
+        if (monApiRam) monApiRam.textContent =
+          mem != null ? mem.toFixed(1) + "%" : "-";
+
+        const queue = j.queue || {};
+        const monWorkersStatus = document.getElementById("monWorkersStatus");
+        const monQueueLen = document.getElementById("monQueueLen");
+        if (monWorkersStatus) monWorkersStatus.textContent = "ONLINE";
+        if (monQueueLen) monQueueLen.textContent =
+          queue.length != null ? String(queue.length) : "-";
+
+        const sessions = j.sessions || {};
+        const monSessionsCount = document.getElementById("monSessionsCount");
+        const monCurrentUser = document.getElementById("monCurrentUser");
+
+        if (monSessionsCount) {
+          const active = sessions.active_sessions_estimate != null
+            ? sessions.active_sessions_estimate
+            : 1;
+          monSessionsCount.textContent = String(active);
+        }
+        if (monCurrentUser) {
+          monCurrentUser.textContent = sessions.current_user?.username
+            || sessions.current_user?.email
+            || "?";
+        }
+
+        const monLastUpdate = document.getElementById("monLastUpdate");
+        if (monLastUpdate) {
+          const now = new Date();
+          monLastUpdate.textContent = now.toLocaleTimeString("es-CR", { hour12: false });
+        }
+
+      } catch (err) {
+        console.error("[monitor] error", err);
+        setStatus("Error al cargar dashboard: " + err.message, "error");
+      }
+    }
+
+    /* ========= SESIÓN / TOKEN ========= */
+
+    function getStoredToken() {
+      return localStorage.getItem("espotifai_token") ||
+             sessionStorage.getItem("espotifai_token");
+    }
+
+    function clearTokenAndRedirect() {
+      localStorage.removeItem("espotifai_token");
+      sessionStorage.removeItem("espotifai_token");
+      window.location.href = "index.html";
+    }
+
+    function ensureToken() {
+      const token = getStoredToken();
+      if (!token) {
+        clearTokenAndRedirect();
+        return null;
+      }
+      return token;
+    }
+
+    function authHeaders(extra = {}) {
+      const token = ensureToken();
+      if (!token) return null;
+      return { "Authorization": "Bearer " + token, ...extra };
+    }
+
+    function setStatus(text, type = "") {
+      statusBar.textContent = text;
+      statusBar.classList.remove("status-ok", "status-error");
+      if (type === "ok") statusBar.classList.add("status-ok");
+      if (type === "error") statusBar.classList.add("status-error");
+    }
+
+    function showDetails(source, payload) {
+      console.log(`[${source}]`, payload);
+    }
+
+    async function loadUser() {
+      const token = ensureToken();
+      if (!token) return;
+
+      try {
+        setStatus("Verificando sesión...");
+        const res = await fetch(API_BASE + "/me", {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          if (res.status === 401) {
+            setStatus("Sesión expirada. Redirigiendo al login...", "error");
+            setTimeout(clearTokenAndRedirect, 1200);
+            return;
+          }
+          throw new Error(data.detail || "Error al verificar /me");
+        }
+
+        const email = data.email || "";
+        const baseName =
+          data.username ||
+          (email ? email.split("@")[0] : "") ||
+          data.id ||
+          "usuario";
+
+        const displayName = baseName;
+        const initials = (displayName[0] || "?").toUpperCase();
+
+        if (userAvatar) {
+          userAvatar.textContent = initials;
+        }
+
+        userInfo.textContent = displayName;
+        setStatus("Sesión válida ✅", "ok");
+      } catch (err) {
+        setStatus("Error: " + err.message, "error");
+        userInfo.textContent = "Sesión desconocida";
+        if (userAvatar) userAvatar.textContent = "?";
+      }
+    }
+
+    async function logout() {
+      const token = getStoredToken();
+      try {
+        if (token) {
+          await fetch(API_BASE + "/auth/logout", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token }
+          });
+        }
+      } catch (_) {}
+      clearTokenAndRedirect();
+    }
+
+    document.getElementById("btnLogout").onclick = logout;
+
+    /* ========= NAV / VISTAS ========= */
+
+    const sideButtons = document.querySelectorAll(".side-btn");
+    const funcButtons = document.querySelectorAll(".func-btn");
+    const funcViews = document.querySelectorAll(".func-view");
+
+    function applyView(view) {
+      sideButtons.forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.view === view);
+      });
+      funcButtons.forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.func === view);
+      });
+      funcViews.forEach(v => {
+        v.classList.toggle("active", v.dataset.func === view);
+      });
+      viewTitle.textContent = view.toUpperCase();
+
+      // Cargar lista de usuarios cuando entro a Share
+      if (view === "share") {
+        loadUsersForShare();
+      }
+    }
+
+    sideButtons.forEach(btn => btn.addEventListener("click", () => applyView(btn.dataset.view)));
+    funcButtons.forEach(btn => btn.addEventListener("click", () => applyView(btn.dataset.func)));
+
+    /* ========= RECENTS ========= */
+
+    function syncIdsToUI() {
+      const mUpload = document.getElementById("mediaIdUpload");
+      const mConvert = document.getElementById("mediaIdConvert");
+      const mStatus = document.getElementById("mediaIdStatus");
+      const mShare  = document.getElementById("mediaIdShare");
+
+      const jConvert = document.getElementById("jobIdConvert");
+      const jStatus  = document.getElementById("jobIdStatus");
+      const jShare   = document.getElementById("jobIdShare");
+
+      if (lastMediaId) {
+        if (mUpload) mUpload.value  = lastMediaId;
+        if (mConvert) mConvert.value = lastMediaId;
+        if (mStatus) mStatus.value  = lastMediaId;
+        if (mShare)  mShare.value   = lastMediaId;
+      }
+
+      if (lastJobId) {
+        if (jConvert) jConvert.value = lastJobId;
+        if (jStatus)  jStatus.value  = lastJobId;
+        if (jShare)   jShare.value   = lastJobId;
+      }
+    }
+
+    function renderRecentTable() {
+      if (!recentTableBody) return;
+      if (!recentItems.length) {
+        recentTableBody.innerHTML = `
+          <tr class="empty-row">
+            <td colspan="6">No hay archivos recientes todavía.</td>
+          </tr>
+        `;
+        return;
+      }
+      let html = "";
+      recentItems.forEach((item, idx) => {
+        const status = item.status || "";
+        const name = item.name || ("Media " + item.mediaId);
+        const selectedClass = idx === selectedRowIndex ? "selected" : "";
+        const hasUrl = !!item.url;
+
+        html += `
+          <tr class="${selectedClass}" data-idx="${idx}">
+            <td>${idx + 1}</td>
+            <td>${name}</td>
+            <td class="col-status">${status}</td>
+            <td>${item.mediaId || ""}</td>
+            <td>${item.jobId || ""}</td>
+            <td>
+              <div class="table-actions">
+                <button type="button"
+                        class="table-btn"
+                        data-action="copy"
+                        data-idx="${idx}"
+                        ${hasUrl ? "" : "disabled"}>
+                  Copiar link
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      recentTableBody.innerHTML = html;
+    }
+
+    function upsertRecent({ mediaId, jobId, name, url, status, target }) {
+      if (!mediaId) return;
+      let idx = recentItems.findIndex(it => it.mediaId === mediaId && it.jobId === jobId);
+      let item;
+      if (idx === -1) {
+        item = { mediaId, jobId: jobId || null };
+        recentItems.unshift(item);
+      } else {
+        item = recentItems[idx];
+        recentItems.splice(idx, 1);
+        recentItems.unshift(item);
+      }
+      if (name) item.name = name;
+      if (jobId) item.jobId = jobId;
+      if (url) item.url = url;
+      if (status) item.status = status;
+      if (target) item.target = target;
+
+      if (recentItems.length > 20) {
+        recentItems = recentItems.slice(0, 20);
+      }
+      selectedRowIndex = 0;
+      renderRecentTable();
+      syncIdsToUI();
+    }
+
+    function handleRecentAction(action, idx) {
+      const item = recentItems[idx];
+      if (!item) return;
+
+      if (!item.url) {
+        setStatus(
+          "Primero genera la URL presignada con 'Generar URL'.",
+          "error"
+        );
+        return;
+      }
+
+      if (action === "copy") {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(item.url)
+            .then(() => {
+              setStatus("URL copiada al portapapeles.", "ok");
+            })
+            .catch(() => {
+              setStatus("No se pudo copiar automáticamente. Revisa la consola.", "error");
+              console.log("URL para copiar:", item.url);
+            });
+        } else {
+          setStatus("No se puede copiar automáticamente. Revisa la consola.", "error");
+          console.log("URL para copiar:", item.url);
+        }
+      }
+    }
+
+    async function selectRecent(index) {
+      const item = recentItems[index];
+      if (!item) return;
+
+      selectedRowIndex = index;
+      lastMediaId = item.mediaId;
+      if (item.jobId) lastJobId = item.jobId;
+      syncIdsToUI();
+      renderRecentTable();
+
+      playerTitle.textContent = item.name || ("Media " + item.mediaId);
+      if (playerSubtitle) {
+        playerSubtitle.textContent = item.status || "";
+      }
+
+      if (!item.jobId) {
+        setStatus(
+          "Este media solo está subido. Encola una conversión y luego genera la URL.",
+          "error"
+        );
+        playerAudio.removeAttribute("src");
+        resetPlayerUI();
+        return;
+      }
+
+      const streamUrl =
+        `${API_BASE}/media/${item.mediaId}/stream?job_id=${encodeURIComponent(
+          item.jobId
+        )}`;
+
+      const isVideo = item.target === "mp4";
+
+      if (isVideo) {
+        if (playerSubtitle) {
+          playerSubtitle.textContent = "Reproduciendo video desde Espotifai (stream)";
+        }
+
+        if (playerAudio) {
+          playerAudio.pause();
+          playerAudio.removeAttribute("src");
+          resetPlayerUI();
+        }
+        if (playerVideo) {
+          playerVideo.style.display = "block";
+          playerVideo.src = streamUrl;
+          playerVideo.load();
+          playerVideo.play().catch(() => {});
+        }
+      } else {
+        if (playerSubtitle) {
+          playerSubtitle.textContent = "Reproduciendo audio desde Espotifai (stream)";
+        }
+
+        if (playerVideo) {
+          playerVideo.pause();
+          playerVideo.removeAttribute("src");
+          playerVideo.style.display = "none";
+        }
+        playerAudio.src = streamUrl;
+        playerAudio.load();
+        playerAudio.play().catch(() => {});
+        updatePlayIcon();
+      }
+    }
+
+    recentTableBody.addEventListener("click", (e) => {
+      const actionBtn = e.target.closest("button[data-action]");
+      if (actionBtn) {
+        const idx = parseInt(actionBtn.dataset.idx, 10);
+        const action = actionBtn.dataset.action;
+        handleRecentAction(action, idx);
+        e.stopPropagation();
+        return;
+      }
+
+      const tr = e.target.closest("tr[data-idx]");
+      if (!tr) return;
+      const idx = parseInt(tr.dataset.idx, 10);
+      selectRecent(idx);
+    });
+
+    /* ========= API: UPLOAD ========= */
+
+    async function upload() {
+      const token = ensureToken();
+      if (!token) return;
+
+      const fileInput = document.getElementById("file");
+      const file = fileInput.files[0];
+      if (!file) {
+        setStatus("Selecciona un archivo primero.", "error");
+        showDetails("upload", { error: "No file selected" });
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append("file", file);
+
+      setStatus("Subiendo archivo...", "");
+      showDetails("upload", { message: "Subiendo archivo..." });
+
+      try {
+        const res = await fetch(API_BASE + "/media/upload", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token },
+          body: fd
+        });
+        const j = await res.json();
+
+        if (res.status === 401) {
+          setStatus("Sesión expirada. Redirigiendo...", "error");
+          setTimeout(clearTokenAndRedirect, 1200);
+          return;
+        }
+
+        setStatus(
+          res.ok ? "Archivo subido correctamente." : "Error al subir archivo",
+          res.ok ? "ok" : "error"
+        );
+        showDetails("upload", j);
+
+        const mid = j.id || j.media_id || j.mediaId;
+        if (!mid) {
+          setStatus("La respuesta no trae 'id' de media.", "error");
+          showDetails("upload", { error: "Respuesta sin id", raw: j });
+          return;
+        }
+
+        lastMediaId = mid;
+        upsertRecent({
+          mediaId: mid,
+          name: file.name,
+          status: "Subido"
+        });
+      } catch (err) {
+        setStatus("Error al subir archivo", "error");
+        showDetails("upload", { error: err.message });
+      }
+    }
+
+    document.getElementById("btnUpload").onclick = upload;
+
+    /* ========= API: CONVERT ========= */
+
+    async function convertMedia() {
+      const headers = authHeaders({ "Content-Type": "application/json" });
+      if (!headers) return;
+
+      const mediaIdInput = document.getElementById("mediaIdConvert");
+      let mediaId = mediaIdInput.value.trim();
+      const target = document.getElementById("target").value;
+
+      if (!mediaId) {
+        if (lastMediaId) {
+          mediaId = lastMediaId;
+          mediaIdInput.value = lastMediaId;
+        } else {
+          setStatus("No hay media_id. Sube un archivo primero.", "error");
+          showDetails("convert", { error: "media_id missing" });
+          return;
+        }
+      }
+
+      setStatus("Encolando conversión...", "");
+      showDetails("convert", { message: "Encolando conversión...", media_id: mediaId, target });
+
+      try {
+        const res = await fetch(`${API_BASE}/media/${mediaId}/convert`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ target })
+        });
+        const j = await res.json();
+
+        if (res.status === 401) {
+          setStatus("Sesión expirada. Redirigiendo...", "error");
+          setTimeout(clearTokenAndRedirect, 1200);
+          return;
+        }
+
+        setStatus(res.ok ? "Conversión encolada." : "Error al encolar conversión",
+                  res.ok ? "ok" : "error");
+        showDetails("convert", j);
+
+        if (j.job_id) {
+          lastJobId = j.job_id;
+          upsertRecent({
+            mediaId,
+            jobId: j.job_id,
+            status: "Convertir a " + target,
+            target: target,
+          });
+        }
+      } catch (err) {
+        setStatus("Error al encolar conversión", "error");
+        showDetails("convert", { error: err.message });
+      }
+    }
+
+    document.getElementById("btnConvert").onclick = convertMedia;
+
+    /* ========= API: STATUS ========= */
+
+    async function checkStatus() {
+      const headers = authHeaders();
+      if (!headers) return;
+
+      const jobIdInput = document.getElementById("jobIdStatus");
+      const mediaIdInput = document.getElementById("mediaIdStatus");
+      let jobId = jobIdInput.value.trim();
+      const mediaId = mediaIdInput.value.trim();
+
+      if (!jobId) {
+        if (lastJobId) {
+          jobId = lastJobId;
+          jobIdInput.value = lastJobId;
+        } else {
+          setStatus("No hay job_id. Encola una conversión primero.", "error");
+          showDetails("status", { error: "job_id missing" });
+          return;
+        }
+      }
+
+      setStatus("Consultando estado del job...", "");
+      showDetails("status", { message: "Consultando status...", job_id: jobId, media_id: mediaId || null });
+
+      try {
+        const url = new URL(`${API_BASE}/jobs/${jobId}/status`);
+        if (mediaId) url.searchParams.set("media_id", mediaId);
+
+        const res = await fetch(url, { headers });
+        const j = await res.json();
+
+        if (res.status === 401) {
+          setStatus("Sesión expirada. Redirigiendo...", "error");
+          setTimeout(clearTokenAndRedirect, 1200);
+          return;
+        }
+
+        setStatus(res.ok ? "Estado consultado." : "Error al consultar estado",
+                  res.ok ? "ok" : "error");
+        showDetails("status", j);
+
+        if (res.ok && (mediaId || lastMediaId) && j.status) {
+          upsertRecent({
+            mediaId: mediaId || lastMediaId,
+            jobId,
+            status: "Estado: " + j.status,
+            target: j.target || undefined,
+          });
+        }
+      } catch (err) {
+        setStatus("Error al consultar estado", "error");
+        showDetails("status", { error: err.message });
+      }
+    }
+
+    document.getElementById("btnStatus").onclick = checkStatus;
+
+    /* ========= API: SHARE (URL presignada) ========= */
+
+    async function shareMedia() {
+      const headers = authHeaders();
+      if (!headers) return;
+
+      const mediaIdInput = document.getElementById("mediaIdShare");
+      const jobIdInput = document.getElementById("jobIdShare");
+      let mediaId = mediaIdInput.value.trim();
+      let jobId = jobIdInput.value.trim();
+
+      if (!mediaId) {
+        if (lastMediaId) {
+          mediaId = lastMediaId;
+          mediaIdInput.value = lastMediaId;
+        } else {
+          setStatus("No hay media_id. Sube un archivo primero.", "error");
+          showDetails("share", { error: "media_id missing" });
+          return;
+        }
+      }
+
+      setStatus("Generando URL presignada...", "");
+      showDetails("share", { message: "Generando URL...", media_id: mediaId, job_id: jobId || null });
+
+      try {
+        const url = new URL(`${API_BASE}/media/${mediaId}/share`);
+        if (jobId) url.searchParams.set("job_id", jobId);
+
+        const res = await fetch(url, { headers });
+        const raw = await res.text();
+        let j;
+        try {
+          j = raw ? JSON.parse(raw) : {};
+        } catch (e) {
+          j = { raw };
+        }
+
+        if (res.status === 401) {
+          setStatus("Sesión expirada. Redirigiendo...", "error");
+          setTimeout(clearTokenAndRedirect, 1200);
+          return;
+        }
+
+        if (!res.ok) {
+          const msg = j.detail || j.error || j.message || `HTTP ${res.status}`;
+          setStatus("Error al generar URL: " + msg, "error");
+          console.error("[share] error response", j);
+          showDetails("share", j);
+          return;
+        }
+
+        setStatus("URL generada.", "ok");
+        console.log("[share] response", j);
+        showDetails("share", j);
+
+        if (j.url) {
+          console.log("Presigned URL:", j.url);
+
+          upsertRecent({
+            mediaId,
+            jobId: jobId || lastJobId,
+            url: j.url,
+            status: "Listo para descargar / reproducir",
+            target: j.target || undefined,
+          });
+
+          const streamUrl =
+            `${API_BASE}/media/${mediaId}/stream` +
+            (jobId ? `?job_id=${encodeURIComponent(jobId)}` : "");
+
+          playerTitle.textContent = `Media ${mediaId}`;
+          if (playerSubtitle) {
+            playerSubtitle.textContent = "Reproduciendo desde Espotifai (stream)";
+          }
+
+          playerAudio.src = streamUrl;
+          playerAudio.load();
+          playerAudio.play().catch(() => {});
+          updatePlayIcon();
+        } else {
+          setStatus("Error al generar URL: respuesta sin URL.", "error");
+          console.warn("[share] respuesta sin url", j);
+        }
+
+      } catch (err) {
+        console.error("[share] exception", err);
+        setStatus("Error al generar URL: " + err.message, "error");
+        showDetails("share", { error: err.message });
+      }
+    }
+
+    document.getElementById("btnShare").onclick = shareMedia;
+
+    /* ========= CARGAR LISTA DE USUARIOS PARA COMPARTIR ========= */
+
+    async function loadUsersForShare() {
+      const select = document.getElementById("shareUserSelect");
+      if (!select) return;
+
+      const headers = authHeaders();
+      if (!headers) return;
+
+      try {
+        const res = await fetch(API_BASE + "/users", { headers });
+        if (!res.ok) {
+          setStatus("Error al cargar lista de usuarios (" + res.status + ")", "error");
+          return;
+        }
+
+        const users = await res.json();
+
+        select.innerHTML = '<option value="">Selecciona un usuario...</option>';
+
+        users.forEach(u => {
+          const username = u.username || u.id;
+          if (!username) return;
+          const opt = document.createElement("option");
+          opt.value = username;
+          opt.textContent = username;
+          select.appendChild(opt);
+        });
+
+      } catch (err) {
+        console.error("[loadUsersForShare]", err);
+        setStatus("Error al cargar lista de usuarios: " + err.message, "error");
+      }
+    }
+
+    /* ========= SHARE interno entre usuarios ========= */
+
+    async function shareWithUser() {
+      const headers = authHeaders({ "Content-Type": "application/json" });
+      if (!headers) return;
+
+      const userSelect = document.getElementById("shareUserSelect");
+      const mediaIdInput = document.getElementById("mediaIdShare");
+      const jobIdInput = document.getElementById("jobIdShare");
+
+      const username = (userSelect.value || "").trim();
+      let mediaId = (mediaIdInput.value || "").trim();
+      let jobId = (jobIdInput.value || "").trim();
+
+      if (!username) {
+        setStatus("Selecciona un usuario de la lista.", "error");
+        return;
+      }
+
+      if (!mediaId) {
+        if (lastMediaId) {
+          mediaId = lastMediaId;
+          mediaIdInput.value = lastMediaId;
+        } else {
+          setStatus("No hay media_id. Sube un archivo primero.", "error");
+          return;
+        }
+      }
+
+      if (!jobId) {
+        if (lastJobId) {
+          jobId = lastJobId;
+          jobIdInput.value = lastJobId;
+        } else {
+          setStatus("No hay job_id. Encola una conversión primero.", "error");
+          return;
+        }
+      }
+
+      setStatus(`Compartiendo media con ${username}...`, "");
+      try {
+        const res = await fetch(`${API_BASE}/media/${mediaId}/share-with-user`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            username_to_share: username,
+            job_id: jobId,
+          }),
+        });
+
+        const j = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          setStatus("Error al compartir: " + (j.detail || res.status), "error");
+          console.error("[share-with-user]", j);
+          return;
+        }
+
+        setStatus("Archivo compartido con " + username + ".", "ok");
+        console.log("[share-with-user] ok", j);
+      } catch (err) {
+        console.error("[share-with-user] exception", err);
+        setStatus("Error al compartir: " + err.message, "error");
+      }
+    }
+
+    async function loadSharedWithMe() {
+      const headers = authHeaders();
+      if (!headers) return;
+
+      setStatus("Cargando archivos compartidos contigo...", "");
+      try {
+        const res = await fetch(`${API_BASE}/media/shared-with-me`, { headers });
+        const j = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          setStatus("Error al cargar compartidos: " + (j.detail || res.status), "error");
+          console.error("[shared-with-me]", j);
+          return;
+        }
+
+        const items = j.items || [];
+        items.forEach((m) => {
+          const mediaId = m.media_id;
+          const name = m.original_filename || "Compartido";
+          const shares = Array.isArray(m.shares) ? m.shares : [];
+          const jobs = Array.isArray(m.jobs) ? m.jobs : [];
+
+          let jobId = "";
+          let target;
+
+          if (shares.length > 0 && shares[shares.length - 1].job_id) {
+            jobId = shares[shares.length - 1].job_id;
+          }
+
+          if (!jobId && jobs.length > 0) {
+            const lastJob = jobs[jobs.length - 1];
+            jobId = lastJob.job_id || "";
+            target = lastJob.target;
+          } else if (jobId && jobs.length > 0) {
+            const match = jobs.find(j => j.job_id === jobId);
+            if (match && match.target) target = match.target;
+          }
+
+          upsertRecent({
+            mediaId,
+            jobId,
+            name,
+            status: "Compartido contigo",
+            target,
+          });
+        });
+
+        if (items.length) {
+          setStatus(`Se cargaron ${items.length} archivos compartidos contigo.`, "ok");
+        } else {
+          setStatus("No tienes archivos compartidos contigo todavía.", "ok");
+        }
+      } catch (err) {
+        console.error("[loadSharedWithMe]", err);
+        setStatus("Error al cargar compartidos: " + err.message, "error");
+      }
+    }
+
+    document.getElementById("btnShareUser").onclick = shareWithUser;
+    document.getElementById("btnLoadSharedWithMe").onclick = loadSharedWithMe;
+
+    /* ========= INIT ========= */
+
+    const btnRefreshMonitor = document.getElementById("btnRefreshMonitor");
+    if (btnRefreshMonitor) {
+      btnRefreshMonitor.addEventListener("click", fetchMonitorSummary);
+    }
+
+    loadUser();
+    renderRecentTable();
+    applyView("upload");
+    resetPlayerUI();
+    fetchMonitorSummary();
+    setInterval(fetchMonitorSummary, 1000);
+  </script>
+</body>
+</html>

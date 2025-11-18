@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Espotifai – Sign in / Sign up</title>
+  <style>
+    :root {
+      --bg-body: #05070d;
+      --bg-panel: #11131e;
+      --bg-input: #05070d;
+      --border-input: #3a3f51;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --accent: #f24e1e;
+      --accent-soft: #f97316;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #181a2a 0, #05070d 60%);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-shell {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    /* LOGO con tu icono */
+    .logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+
+    .logo-img {
+      width: 96px;
+      aspect-ratio: 1 / 1;
+      border-radius: 28px;
+      object-fit: cover;
+      box-shadow:
+        0 0 45px rgba(242, 78, 30, 0.85),
+        0 12px 35px rgba(0, 0, 0, 0.8);
+      margin-bottom: 8px;
+    }
+
+    .logo-text {
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      font-size: 16px;
+      text-transform: uppercase;
+      color: #f9fafb;
+    }
+
+    /* Pestañas con pill animado */
+    .mode-tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+
+    .mode-tabs-inner {
+      position: relative;
+      display: inline-flex;
+      padding: 3px;
+      border-radius: 999px;
+      background: #191b2a;
+      box-shadow: inset 0 0 0 1px #272c3f;
+      overflow: hidden;
+      min-width: 220px;
+    }
+
+    .mode-tab {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 6px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .mode-tab.active {
+      color: var(--text-main);
+    }
+
+    .mode-indicator {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      width: 50%;
+      border-radius: 999px;
+      background: #101320;
+      box-shadow: 0 0 0 1px #272c3f;
+      transform: translateX(0%);
+      transition: transform 220ms ease;
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      border-radius: 10px;
+      padding: 18px 24px 16px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.9);
+      border: 1px solid #1f2433;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .input {
+      width: 100%;
+      padding: 10px 11px;
+      border-radius: 4px;
+      border: 1px solid var(--border-input);
+      background: var(--bg-input);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+    }
+    .input::placeholder { color: #6b7280; }
+    .input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(242,78,30,0.55);
+    }
+
+    .field { margin-bottom: 10px; }
+
+    /* CONTENEDOR ANIMADO: altura dinámica */
+    .forms-wrapper {
+      position: relative;
+      overflow: hidden;
+      margin-top: 2px;
+      transition: height 220ms ease;
+    }
+
+    .form-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      opacity: 0;
+      transform: translateX(16px);
+      transition: opacity 220ms ease, transform 220ms ease;
+      pointer-events: none;
+    }
+
+    .form-panel.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    /* Fila de acciones: Google - stay signed - flecha */
+    .actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .google-circle {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      flex-shrink: 0;
+    }
+
+    .google-g {
+      font-size: 18px;
+      font-weight: 700;
+      background: conic-gradient(#4285f4 0 90deg,#ea4335 90deg 180deg,#fbbc05 180deg 270deg,#34a853 270deg 360deg);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .stay-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      flex: 1;
+      justify-content: center;
+    }
+
+    input[type="checkbox"] {
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .arrow-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: var(--accent);
+      color: #0b0b0b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .arrow-btn:hover { background: var(--accent-soft); }
+
+    #message {
+      font-size: 11px;
+      min-height: 16px;
+      margin-top: 8px;
+      text-align: center;
+    }
+    #message.error { color: #f87171; }
+    #message.ok { color: #4ade80; }
+
+    .cant-sign {
+      margin-top: 14px;
+      font-size: 11px;
+      text-align: center;
+      color: var(--text-muted);
+      letter-spacing: 0.16em;
+      cursor: pointer;
+    }
+    .cant-sign:hover { color: var(--accent-soft); }
+  </style>
+</head>
+<body>
+  <div class="login-shell">
+    <div class="logo">
+      <img src="logotipo.png" alt="Espotifai logo" class="logo-img" />
+      <div class="logo-text"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="mode-tabs">
+      <div class="mode-tabs-inner" id="tabsInner">
+        <div class="mode-indicator" id="indicator"></div>
+        <button class="mode-tab active" id="tabSignIn">SIGN IN</button>
+        <button class="mode-tab" id="tabSignUp">SIGN UP</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="forms-wrapper" id="formsWrapper">
+        <!-- SIGN IN -->
+        <form id="formSignIn" class="form-panel active">
+          <div class="field">
+            <label for="loginUsername">USERNAME</label>
+            <input
+              class="input"
+              id="loginUsername"
+              name="username"
+              autocomplete="username"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="loginPassword">PASSWORD</label>
+            <input
+              class="input"
+              id="loginPassword"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+
+          <div class="actions-row">
+            <!-- Solo logo de Google -->
+            <button
+              class="google-circle"
+              type="button"
+              id="btnGoogle"
+              title="Sign in with Google"
+            >
+              <span class="google-g">G</span>
+            </button>
+
+            <label class="stay-row">
+              <input type="checkbox" id="staySignedIn" />
+              Stay signed in
+            </label>
+
+            <button class="arrow-btn" type="submit">➜</button>
+          </div>
+        </form>
+
+        <!-- SIGN UP -->
+        <form id="formSignUp" class="form-panel">
+          <div class="field">
+            <label for="signupUsername">USERNAME</label>
+            <input
+              class="input"
+              id="signupUsername"
+              name="username"
+              autocomplete="username"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="signupPassword">PASSWORD</label>
+            <input
+              class="input"
+              id="signupPassword"
+              name="password"
+              type="password"
+              autocomplete="new-password"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="signupPassword2">CONFIRM PASSWORD</label>
+            <input
+              class="input"
+              id="signupPassword2"
+              type="password"
+              autocomplete="new-password"
+              required
+            />
+          </div>
+
+          <div class="actions-row" style="justify-content: flex-end;">
+            <button class="arrow-btn" type="submit">➜</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="message"></div>
+    </div>
+
+    
+  </div>
+
+  <!-- IMPORTANTE: type="module" para poder usar imports de Firebase -->
+  <script type="module">
+    const API_BASE = "http://localhost:8000"; // cambia si tu API corre en otro host/puerto
+
+    const tabSignIn = document.getElementById("tabSignIn");
+    const tabSignUp = document.getElementById("tabSignUp");
+    const indicator = document.getElementById("indicator");
+    const formSignIn = document.getElementById("formSignIn");
+    const formSignUp = document.getElementById("formSignUp");
+    const formsWrapper = document.getElementById("formsWrapper");
+    const msg = document.getElementById("message");
+
+    function showMessage(text, type = "") {
+      msg.textContent = text;
+      msg.className = type;
+    }
+
+    // Ajustar altura del wrapper al formulario activo
+    function updateWrapperHeight() {
+      const activeForm = formSignIn.classList.contains("active") ? formSignIn : formSignUp;
+      const h = activeForm.offsetHeight;
+      formsWrapper.style.height = h + "px";
+    }
+
+    // Cambiar pestañas + animación
+    function setMode(mode) {
+      if (mode === "signin") {
+        tabSignIn.classList.add("active");
+        tabSignUp.classList.remove("active");
+        indicator.style.transform = "translateX(0%)";
+        formSignIn.classList.add("active");
+        formSignUp.classList.remove("active");
+      } else {
+        tabSignIn.classList.remove("active");
+        tabSignUp.classList.add("active");
+        indicator.style.transform = "translateX(100%)";
+        formSignIn.classList.remove("active");
+        formSignUp.classList.add("active");
+      }
+      showMessage("");
+      setTimeout(updateWrapperHeight, 10);
+    }
+
+    tabSignIn.addEventListener("click", () => setMode("signin"));
+    tabSignUp.addEventListener("click", () => setMode("signup"));
+    window.addEventListener("load", updateWrapperHeight);
+
+    // ===== SIGN IN normal → /auth/token =====
+    formSignIn.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      showMessage("Signing in...", "");
+
+      const username = document.getElementById("loginUsername").value.trim();
+      const password = document.getElementById("loginPassword").value;
+      const staySignedIn = document.getElementById("staySignedIn").checked;
+
+      const fd = new FormData();
+      fd.append("username", username);
+      fd.append("password", password);
+
+      try {
+        const res = await fetch(API_BASE + "/auth/token", {
+          method: "POST",
+          body: fd,
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.detail || "Error al iniciar sesión");
+
+        const token = data.access_token;
+        if (!token) throw new Error("No se recibió access_token");
+
+        const storage = staySignedIn ? localStorage : sessionStorage;
+        storage.setItem("espotifai_token", token);
+
+
+        setTimeout(() => {
+          window.location.href = "app.html";
+        }, 400);
+
+        
+        // Aquí puedes redirigir:
+        // window.location.href = "app.html";
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
+
+    // ===== SIGN UP → /auth/register y luego /auth/token =====
+    formSignUp.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+
+      const username = document.getElementById("signupUsername").value.trim();
+      const password = document.getElementById("signupPassword").value;
+      const password2 = document.getElementById("signupPassword2").value;
+
+      if (password !== password2) {
+        showMessage("Passwords do not match", "error");
+        return;
+      }
+
+      const fdReg = new FormData();
+      fdReg.append("username", username);
+      fdReg.append("password", password);
+
+      try {
+        // Registrar
+        const rReg = await fetch(API_BASE + "/auth/register", {
+          method: "POST",
+          body: fdReg,
+        });
+        const dataReg = await rReg.json();
+        if (!rReg.ok) throw new Error(dataReg.detail || "Error al registrar usuario");
+
+        // Loguear automáticamente
+        const rLogin = await fetch(API_BASE + "/auth/token", {
+          method: "POST",
+          body: fdReg,
+        });
+        const dataLogin = await rLogin.json();
+        if (!rLogin.ok) throw new Error(dataLogin.detail || "Usuario creado, pero falló el login");
+
+        const token = dataLogin.access_token;
+        sessionStorage.setItem("espotifai_token", token);
+
+        setTimeout(() => {
+          window.location.href = "app.html";
+        }, 400);
+
+
+        
+        // window.location.href = "app.html";
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
+
+    // ===== GOOGLE SIGN-IN: Firebase → /auth/google =====
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0gg63jhMWGORFojA6FfaeL65jhJ8tV38",
+      authDomain: "espotifai-dev2.firebaseapp.com",
+      projectId: "espotifai-dev2",
+      storageBucket: "espotifai-dev2.firebasestorage.app",
+      messagingSenderId: "1093453342824",
+      appId: "1:1093453342824:web:ec18b1010ac7bed35eb3dd",
+      measurementId: "G-PM7HZV17CR"
+    };
+
+    const fbApp = initializeApp(firebaseConfig);
+    const auth = getAuth(fbApp);
+    const provider = new GoogleAuthProvider();
+
+    async function loginWithGoogle() {
+     
+
+      try {
+        // 1) Sign-in con Google (cliente)
+        const result = await signInWithPopup(auth, provider);
+        const idToken = await result.user.getIdToken();
+
+        // 2) Enviar id_token al backend
+        const staySignedIn = document.getElementById("staySignedIn").checked;
+        const res = await fetch(API_BASE + "/auth/google", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_token: idToken })
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.detail || "Error al iniciar sesión con Google");
+
+        const token = data.access_token;
+        if (!token) throw new Error("No se recibió access_token del backend");
+
+        const storage = staySignedIn ? localStorage : sessionStorage;
+        storage.setItem("espotifai_token", token);
+
+        showMessage("Sesión con Google iniciada ✅", "ok");
+
+        setTimeout(() => {
+          window.location.href = "app.html";
+        }, 400);
+
+        
+        // window.location.href = "app.html";
+      } catch (err) {
+        showMessage("Google sign-in error: " + err.message, "error");
+      }
+    }
+
+    document.getElementById("btnGoogle").onclick = loginWithGoogle;
+
+    
+    document.getElementById("cantSign").onclick = () => {
+      alert("Recuperación de contraseña: se puede implementar más adelante (documentado como trabajo futuro).");
+    };
+  </script>
+</body>
+</html>

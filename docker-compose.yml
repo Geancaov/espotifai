@@ -10,7 +10,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/service-account.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/espotifai-dev2-firebase-adminsdk-fbsvc-e9584a1e39.json
       - REDIS_HOST=redis
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
@@ -42,9 +42,9 @@ services:
     volumes:
       - minio-data:/data
 
-  worker:
+  worker_a:
     build: ./backend
-    container_name: worker
+    container_name: worker_a
     command: python worker/worker.py
     env_file:
       - ./backend/.env
@@ -60,8 +60,35 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_SECURE=false
-      - FIREBASE_PROJECT_ID=espotifai-81056
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/service-account.json
+      - FIREBASE_PROJECT_ID=espotifai-dev2
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/espotifai-dev2-firebase-adminsdk-fbsvc-e9584a1e39.json
+    depends_on:
+      - redis
+      - minio
+    volumes:
+      - ./backend:/app
+      - ./backend/keys:/app/keys:ro
+
+  worker_b:
+    build: ./backend
+    container_name: worker_b
+    command: python worker/worker.py
+    env_file:
+      - ./backend/.env
+    environment:
+      - PYTHONPATH=/app
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_QUEUE=convert      # MISMA cola → Redis reparte trabajos
+      - WORKER_ID=worker_b       # ID distinto para métricas
+      - METRICS_PORT=9102        # puede ser el mismo puerto dentro del contenedor
+      - OUTPUT_BASE_DIR=/tmp/media_jobs
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+      - FIREBASE_PROJECT_ID=espotifai-dev2
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/espotifai-dev2-firebase-adminsdk-fbsvc-e9584a1e39.json
     depends_on:
       - redis
       - minio

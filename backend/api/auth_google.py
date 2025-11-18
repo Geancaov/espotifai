@@ -9,42 +9,52 @@ router = APIRouter()
 SECRET = os.getenv("SECRET_KEY", "secret")
 EXPIRE_MIN = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID") 
+FIREBASE_PROJECT_ID = (os.getenv("FIREBASE_PROJECT_ID") or "").strip()
+
+# tolerancia de desfase de reloj (en segundos)
+CLOCK_SKEW = 60
+
 
 @router.post("/auth/google")
 def auth_google(payload: dict = Body(...)):
     idt = payload.get("id_token")
     if not idt:
-        raise HTTPException(400, "id_token requerido")
+        raise HTTPException(status_code=400, detail="id_token requerido")
 
+    req = google_requests.Request()
     info = None
-    err_msgs = []
+    errores = []
 
-    # 1) Intentar como Google OAuth (GIS)
+    # 1) Intentar como ID token OAuth2 del cliente web
     if GOOGLE_CLIENT_ID:
         try:
             info = google_id_token.verify_oauth2_token(
-                idt, google_requests.Request(), GOOGLE_CLIENT_ID
+                idt,
+                req,
+                audience=GOOGLE_CLIENT_ID,
+                clock_skew_in_seconds=CLOCK_SKEW,
             )
         except Exception as e:
-            err_msgs.append(f"oauth2: {e}")
+            errores.append(f"oauth2: {e}")
 
-    # 2) Si falló, intentar como Firebase Auth
-    if info is None and FIREBASE_PROJECT_ID:
+    # 2) Si no funcionó, intentar como token de Firebase
+    if info is None:
         try:
             info = google_id_token.verify_firebase_token(
-                idt, google_requests.Request(), audience=FIREBASE_PROJECT_ID
+                idt,
+                req,
+                audience=FIREBASE_PROJECT_ID or None,
+                clock_skew_in_seconds=CLOCK_SKEW,
             )
         except Exception as e:
-            err_msgs.append(f"firebase: {e}")
+            errores.append(f"firebase: {e}")
+            # si llega aquí, las dos validaciones fallaron
+            detalle = "; ".join(errores) or "ID token inválido"
+            raise HTTPException(status_code=401, detail=detalle)
 
-    if info is None:
-        # Para depuración: en producción, devuelve mensaje genérico
-        raise HTTPException(401, f"ID token inválido ({'; '.join(err_msgs)})")
-
-    email = (info.get("email") or "").lower()
+    email = info.get("email")
     if not email:
-        raise HTTPException(400, "Token válido pero sin email")
+        raise HTTPException(status_code=400, detail="Token válido pero sin email")
 
     username = email
     u = get_user_by_username(username)
@@ -52,9 +62,14 @@ def auth_google(payload: dict = Body(...)):
         u = fb_create_user(username=username, hashed_password="GOOGLE_ACCOUNT")
 
     token = jwt.encode(
-        {"sub": username, "uid": u["id"],
-         "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=EXPIRE_MIN),
-         "provider": "google"},
-        SECRET, algorithm="HS256"
+        {
+            "sub": username,
+            "uid": u["id"],
+            "exp": datetime.datetime.utcnow()
+            + datetime.timedelta(minutes=EXPIRE_MIN),
+            "provider": "google",
+        },
+        SECRET,
+        algorithm="HS256",
     )
     return {"access_token": token, "token_type": "bearer"}

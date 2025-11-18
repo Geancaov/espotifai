@@ -1,8 +1,10 @@
 # backend/api/metrics.py
-from prometheus_client import Counter, Histogram
+from prometheus_client import Counter, Histogram, Gauge
 import time
+import psutil
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+
 
 # --- Definición de Métricas ---
 # (Basado en la checklist de la imagen)
@@ -43,6 +45,45 @@ api_queue_size = Gauge(
     ["queue_name"]
 )
 
+# --- Métricas de uso de recursos del sistema (CPU, RAM, red) ---
+
+system_cpu_percent = Gauge(
+    "system_cpu_percent",
+    "Uso de CPU del proceso",
+    ["service"],
+)
+
+system_memory_percent = Gauge(
+    "system_memory_percent",
+    "Uso de memoria del proceso",
+    ["service"],
+)
+
+system_net_bytes_sent = Gauge(
+    "system_net_bytes_sent",
+    "Bytes enviados por la interfaz de red",
+    ["service"],
+)
+
+system_net_bytes_recv = Gauge(
+    "system_net_bytes_recv",
+    "Bytes recibidos por la interfaz de red",
+    ["service"],
+)
+
+
+def update_system_metrics(service_name: str = "api") -> None:
+    """Actualiza métricas de CPU, RAM y red para el proceso actual."""
+    cpu = psutil.cpu_percent(interval=0)
+    mem = psutil.virtual_memory().percent
+    net = psutil.net_io_counters()
+
+    system_cpu_percent.labels(service=service_name).set(cpu)
+    system_memory_percent.labels(service=service_name).set(mem)
+    system_net_bytes_sent.labels(service=service_name).set(net.bytes_sent)
+    system_net_bytes_recv.labels(service=service_name).set(net.bytes_recv)
+
+
 
 # --- Middleware para tracking automático ---
 
@@ -67,7 +108,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             path = request.url.path
             method = request.method
             
-            # Actualizar métricas
+            # Actualizar métricas de API
             api_requests_latency_seconds.labels(
                 method=method, path=path, status_code=status_code
             ).observe(latency)
@@ -75,5 +116,8 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             api_requests_total.labels(
                 method=method, path=path, status_code=status_code
             ).inc()
+
+            # <<< NUEVO: actualizar métricas de CPU / RAM / red del servicio API >>>
+            update_system_metrics("api")
 
         return response
